@@ -2,7 +2,7 @@
 import math
 import random
 
-DT = None # Sampling interval - defaults to None, must be set explicitly
+DT = 1 # Sampling interval - defaults to None, must be set explicitly
 
 # ============================================================
 # Components
@@ -22,16 +22,16 @@ class Component:
 class PidController( Component ):
     def __init__( self, kp, ki, kd=0 ):
         self.kp, self.ki, self.kd = kp, ki, kd
-        self.i = 0
-        self.d = 0
-        self.prev = 0
+        self._sum_of_errors = 0
+        self._rate_of_error_change = 0
+        self._prev_error = 0
 
-    def work( self, e ):
-        self.i += DT*e
-        self.d = ( e - self.prev )/DT
-        self.prev = e
+    def work( self, error ):
+        self._sum_of_errors += DT*error
+        self._rate_of_error_change = ( error - self._prev_error )/DT
+        self._prev_error = error
 
-        return self.kp*e + self.ki*self.i + self.kd*self.d
+        return self.kp*error + self.ki*self._sum_of_errors + self.kd*self._rate_of_error_change
 
 class AdvController( Component ):
     def __init__( self, kp, ki, kd=0, clamp=(-1e10,1e10), smooth=1 ):
