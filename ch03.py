@@ -11,4 +11,4 @@ for _ in range( 200 ):
     e = r - y    # Tracking error
     u = k*e      # Controller ouput
 
-    print r, e, 0, u, y
+    print(r, e, 0, u, y)

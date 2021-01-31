@@ -26,7 +26,7 @@ class Cache( fb.Component ):
             m = 1 + len(self.cache) - self.size # number of elements to delete
 
             tmp = {}
-            for k in self.cache.keys():    # key by last_access_time
+            for k in list(self.cache.keys()):    # key by last_access_time
                 tmp[ self.cache[k] ] = k
                 
             for t in sorted( tmp.keys() ): # delete the oldest elements
