@@ -1,37 +1,54 @@
 import random
 import feedback as fb
 import math
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import make_interp_spline
+
+random.seed(323)
 
 class ThreadPool(fb.Component):
 
     approx_job_processing_rate_per_interval = 3
-    max_threads = 10
+    max_threads = 100
 
     def __init__(self):
         self.threads = 3
         self.load = 10
 
+        self.thread_list = []
+        self.failure_rate_list = []
+        self.load_list = []
+        self.load_randomizer = random.Random()
+        self.work_randomizer = random.Random()
+
     def work(self, percentage_increase_in_threads):
         '''
-        return completion rate - (number of completed/total)
+        change the number of threads
+        simulate the processing of pending jobs
+        return completion rate = (number of completed/total)
         :param u:
         :return:
         '''
-        self.load += max(random.randint(-5, 50), 0)
+        self.load += max(self.load_randomizer.randint(-50, 50), 0)
+        self.load_list.append(self.load)
+
         if (self.load == 0):
-            self.threads = max(self.threads - 1, 1)
-            return 1.0
+            self.threads = max(self.threads - 3, 1)
+            success_rate = 1.0
+            completed = 0
+        else:
+            num_jobs_can_complete = self.threads * __class__.approx_job_processing_rate_per_interval + self.work_randomizer.randint(-1, 1)
+            completed = min(self.load, num_jobs_can_complete)
+            success_rate = completed/self.load
+            self.load -= completed
 
-
-        num_jobs_can_complete = self.threads * __class__.approx_job_processing_rate_per_interval + random.randint(-1, 1)
-        completed = min(self.load, num_jobs_can_complete)
-        success_rate = completed/self.load
-        self.load -= completed
-
-        self.threads = min(__class__.max_threads, self.threads + math.ceil(percentage_increase_in_threads * self.threads))
+            self.threads = min(__class__.max_threads, self.threads + math.ceil(percentage_increase_in_threads * self.threads))
 
         print('thr=', self.threads, 'completed=', completed, 'pending=', self.load,
-              ' success_rate=', round(success_rate, 2), 'perc=', round(percentage_increase_in_threads, 2))
+                  ' success_rate=', round(success_rate, 2), 'perc=', round(percentage_increase_in_threads, 2))
+        self.thread_list.append(self.threads)
+        self.failure_rate_list.append(1.0 - success_rate)
         return success_rate
 
 # https://stackoverflow.com/questions/10944621/dynamically-updating-plot-in-matplotlib
@@ -73,12 +90,54 @@ def closed_loop( setpoint, controller, plant, tm=5000, inverted=False,
         y = plant.work(v)
         z = returnfilter.work(y)
 
-        #print(t, t*fb.DT, r, e, u, v, y, z, plant.monitoring())
+def draw1(prefix, t, label1, data1, label2, data2):
 
-    quit()
+    fig, ax1 = plt.subplots()
+
+    xnew = np.linspace(t.min(), t.max(), 50)
+
+    # define spline
+    spl = make_interp_spline(t, data1, k=3)
+    data1_smooth = spl(xnew)
+
+    spl = make_interp_spline(t, data2, k=3)
+    data2_smooth = spl(xnew)
+
+    color = 'tab:red'
+    ax1.set_xlabel('time (s)')
+    ax1.set_ylabel(label1, color=color)
+    ax1.plot(xnew, data1_smooth, color=color, markevery=100)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    color = 'tab:blue'
+    ax2.set_ylabel(label2, color=color)  # we already handled the x-label with ax1
+    ax2.plot(xnew, data2_smooth, color=color, markevery=100)
+    ax2.tick_params(axis='y', labelcolor=color)
+    plt.locator_params(axis='x', nbins=10)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    # plt.show()
+
+    filename = prefix + '_p{}_i{}_d{}.png'.format(k_proportional, k_integral, k_derivative)
+    plt.savefig(filename)
 
 if __name__ == '__main__':
     fb.DT = 1
     plant = ThreadPool()
-    controller = MyPidController(0.1, 0.0, 0.3)  # kp = time to complete one job
-    closed_loop(setpoint, controller, plant, 10000)
+    k_proportional = 0.1
+    k_integral = 0.0
+    k_derivative = 0.3
+    controller = MyPidController(k_proportional, k_integral, k_derivative)  # kp = time to complete one job
+    closed_loop(setpoint, controller, plant, 1000)
+
+    data = np.array([plant.failure_rate_list, plant.thread_list, plant.load_list])
+    print(data.shape)
+
+    t = np.arange(0, data.shape[1])
+    data1 = data[0,:]
+    data2 = data[1,:]
+    data3 = data[2,:]
+
+    draw1('threadpool',t, 'failure_rate', data1, 'num threads', data2)
+    draw1('load', t, 'load', data3, 'num threads', data2)
