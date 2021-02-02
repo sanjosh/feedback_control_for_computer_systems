@@ -7,6 +7,9 @@ from scipy.interpolate import make_interp_spline
 
 random.seed(323)
 
+def setpoint(t):
+    return 1.0 # ideal completion rate (all pending jobs should be completed in each cycle)
+
 class ThreadPool(fb.Component):
 
     approx_job_processing_rate_per_interval = 3
@@ -17,7 +20,7 @@ class ThreadPool(fb.Component):
         self.load = 10
 
         self.thread_list = []
-        self.failure_rate_list = []
+        self.rate_list = []
         self.load_list = []
         self.load_randomizer = random.Random()
         self.work_randomizer = random.Random()
@@ -30,7 +33,9 @@ class ThreadPool(fb.Component):
         :param u:
         :return:
         '''
-        self.load += max(self.load_randomizer.randint(-50, 50), 0)
+
+        # Simulate changes in load (incoming jobs)
+        self.load += max(self.load_randomizer.randint(-5, 5), 0)
         self.load_list.append(self.load)
 
         if (self.load == 0):
@@ -38,6 +43,7 @@ class ThreadPool(fb.Component):
             success_rate = 1.0
             completed = 0
         else:
+            # Simulate the thread pool completing jobs
             num_jobs_can_complete = self.threads * __class__.approx_job_processing_rate_per_interval + self.work_randomizer.randint(-1, 1)
             completed = min(self.load, num_jobs_can_complete)
             success_rate = completed/self.load
@@ -48,16 +54,11 @@ class ThreadPool(fb.Component):
         print('thr=', self.threads, 'completed=', completed, 'pending=', self.load,
                   ' success_rate=', round(success_rate, 2), 'perc=', round(percentage_increase_in_threads, 2))
         self.thread_list.append(self.threads)
-        self.failure_rate_list.append(1.0 - success_rate)
+        self.rate_list.append(success_rate)
         return success_rate
 
-# https://stackoverflow.com/questions/10944621/dynamically-updating-plot-in-matplotlib
-# https://matplotlib.org/examples/animation/index.html
-
-def setpoint(t):
-    return 1.0 # ideal completion rate (all pending jobs are completed)
-
 class MyPidController( fb.Component ):
+
     def __init__( self, kp, ki, kd=0 ):
         self.kp, self.ki, self.kd = kp, ki, kd
         self._sum_of_errors = 0
@@ -67,7 +68,7 @@ class MyPidController( fb.Component ):
     def work( self, percentage_jobs_not_completed ):
         '''
         input is failure rate which between [0, 1]
-        output is percentage to increase threads by
+        output is percentage by which to increase or decrease current threads
         :param error:
         :return:
         '''
@@ -117,7 +118,7 @@ def draw1(prefix, t, label1, data1, label2, data2):
     plt.locator_params(axis='x', nbins=10)
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    # plt.show()
+    #plt.show()
 
     filename = prefix + '_p{}_i{}_d{}.png'.format(k_proportional, k_integral, k_derivative)
     plt.savefig(filename)
@@ -125,13 +126,13 @@ def draw1(prefix, t, label1, data1, label2, data2):
 if __name__ == '__main__':
     fb.DT = 1
     plant = ThreadPool()
-    k_proportional = 0.1
+    k_proportional = 0.9
     k_integral = 0.0
-    k_derivative = 0.3
+    k_derivative = 0.1
     controller = MyPidController(k_proportional, k_integral, k_derivative)  # kp = time to complete one job
     closed_loop(setpoint, controller, plant, 1000)
 
-    data = np.array([plant.failure_rate_list, plant.thread_list, plant.load_list])
+    data = np.array([plant.rate_list, plant.thread_list, plant.load_list])
     print(data.shape)
 
     t = np.arange(0, data.shape[1])
@@ -139,5 +140,5 @@ if __name__ == '__main__':
     data2 = data[1,:]
     data3 = data[2,:]
 
-    draw1('threadpool',t, 'failure_rate', data1, 'num threads', data2)
+    draw1('threadpool',t, 'success_rate', data1, 'num threads', data2)
     draw1('load', t, 'load', data3, 'num threads', data2)
