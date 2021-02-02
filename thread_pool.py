@@ -1,16 +1,16 @@
 import random
-import feedback as fb
 import math
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import make_interp_spline
+from draw_fig import draw1
 
 random.seed(323)
+
+sampling_interval = 1  # sampling interval
 
 def setpoint(t):
     return 1.0 # ideal completion rate (all pending jobs should be completed in each cycle)
 
-class ThreadPool(fb.Component):
+class ThreadPool():
 
     approx_job_processing_rate_per_interval = 3
     max_threads = 100
@@ -57,7 +57,7 @@ class ThreadPool(fb.Component):
         self.rate_list.append(success_rate)
         return success_rate
 
-class MyPidController( fb.Component ):
+class MyPidController():
 
     def __init__( self, kp, ki, kd=0 ):
         self.kp, self.ki, self.kd = kp, ki, kd
@@ -72,59 +72,23 @@ class MyPidController( fb.Component ):
         :param error:
         :return:
         '''
-        self._sum_of_errors += fb.DT*percentage_jobs_not_completed
-        self._rate_of_error_change = ( percentage_jobs_not_completed - self._prev_error )/fb.DT
+        self._sum_of_errors += sampling_interval *percentage_jobs_not_completed
+        self._rate_of_error_change = ( percentage_jobs_not_completed - self._prev_error )/sampling_interval
         self._prev_error = percentage_jobs_not_completed
 
         percent_increase = self.kp*percentage_jobs_not_completed + self.ki*self._sum_of_errors + self.kd*self._rate_of_error_change
         return min(percent_increase, 1.0)
 
-def closed_loop( setpoint, controller, plant, tm=5000, inverted=False,
-                 actuator=fb.Identity(), returnfilter=fb.Identity() ):
+def closed_loop( setpoint, controller, plant, tm=5000, inverted=False):
     z = 0
     for t in range( tm ):
         r = setpoint(t)
         e = r - z
         if inverted == True: e = -e
         u = controller.work(e)
-        v = actuator.work(u)
-        y = plant.work(v)
-        z = returnfilter.work(y)
-
-def draw1(prefix, t, label1, data1, label2, data2):
-
-    fig, ax1 = plt.subplots()
-
-    xnew = np.linspace(t.min(), t.max(), 50)
-
-    # define spline
-    spl = make_interp_spline(t, data1, k=3)
-    data1_smooth = spl(xnew)
-
-    spl = make_interp_spline(t, data2, k=3)
-    data2_smooth = spl(xnew)
-
-    color = 'tab:red'
-    ax1.set_xlabel('time (s)')
-    ax1.set_ylabel(label1, color=color)
-    ax1.plot(xnew, data1_smooth, color=color, markevery=100)
-    ax1.tick_params(axis='y', labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-    color = 'tab:blue'
-    ax2.set_ylabel(label2, color=color)  # we already handled the x-label with ax1
-    ax2.plot(xnew, data2_smooth, color=color, markevery=100)
-    ax2.tick_params(axis='y', labelcolor=color)
-    plt.locator_params(axis='x', nbins=10)
-
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    #plt.show()
-
-    filename = prefix + '_p{}_i{}_d{}.png'.format(k_proportional, k_integral, k_derivative)
-    plt.savefig(filename)
+        z = plant.work(u)
 
 if __name__ == '__main__':
-    fb.DT = 1
     plant = ThreadPool()
     k_proportional = 0.9
     k_integral = 0.0
