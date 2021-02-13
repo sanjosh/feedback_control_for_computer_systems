@@ -1,8 +1,10 @@
+import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import make_interp_spline
 
 
-def draw1(prefix, t, label1, data1, label2, data2):
+def draw1(prefix, t, label1, data1, label2, data2,
+          k_proportional, k_integral, k_derivative):
 
     fig, ax1 = plt.subplots()
 
@@ -31,5 +33,5 @@ def draw1(prefix, t, label1, data1, label2, data2):
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     #plt.show()
 
-    filename = prefix + '_p{}_i{}_d{}.png'.format(k_proportional, k_integral, k_derivative)
+    filename = 'p{}_i{}_d{}_{}.png'.format(k_proportional, k_integral, k_derivative, prefix)
     plt.savefig(filename)

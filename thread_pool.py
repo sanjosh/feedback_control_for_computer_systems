@@ -36,6 +36,7 @@ class ThreadPool():
 
         # Simulate changes in load (incoming jobs)
         self.load += max(self.load_randomizer.randint(-5, 5), 0)
+        # self.load += max(self.load_randomizer.gauss(0, 5), 0)
         self.load_list.append(self.load)
 
         if (self.load == 0):
@@ -44,7 +45,7 @@ class ThreadPool():
             completed = 0
         else:
             # Simulate the thread pool completing jobs
-            num_jobs_can_complete = self.threads * __class__.approx_job_processing_rate_per_interval + self.work_randomizer.randint(-1, 1)
+            num_jobs_can_complete = self.threads * __class__.approx_job_processing_rate_per_interval + self.work_randomizer.randint(-2, 2)
             completed = min(self.load, num_jobs_can_complete)
             success_rate = completed/self.load
             self.load -= completed
@@ -94,7 +95,7 @@ if __name__ == '__main__':
     k_integral = 0.0
     k_derivative = 0.1
     controller = MyPidController(k_proportional, k_integral, k_derivative)  # kp = time to complete one job
-    closed_loop(setpoint, controller, plant, 1000)
+    closed_loop(setpoint, controller, plant, 10000)
 
     data = np.array([plant.rate_list, plant.thread_list, plant.load_list])
     print(data.shape)
@@ -104,5 +105,5 @@ if __name__ == '__main__':
     data2 = data[1,:]
     data3 = data[2,:]
 
-    draw1('threadpool',t, 'success_rate', data1, 'num threads', data2)
-    draw1('load', t, 'load', data3, 'num threads', data2)
+    draw1('threadpool',t, 'job success_rate', data1, 'num threads', data2, k_proportional, k_integral, k_derivative)
+    draw1('load', t, 'pending jobs', data3, 'num threads', data2, k_proportional, k_integral, k_derivative)
