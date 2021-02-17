@@ -5,7 +5,7 @@ import matplotlib as mpl
 
 # mpl.use('GTK3Agg')
 
-def draw_all(t, thread_num, load_list, success_rate, k_proportional, k_integral, k_derivative):
+def draw_all(t, thread_num, load_list, success_rate, k_proportional, k_integral, k_derivative, swing_factor):
 
     xnew = np.linspace(t.min(), t.max(), 50)
 
@@ -40,7 +40,7 @@ def draw_all(t, thread_num, load_list, success_rate, k_proportional, k_integral,
     # # plt.show()
     plt.locator_params(axis='x', nbins=10)
 
-    filename = 'p{}_i{}_d{}.png'.format(k_proportional, k_integral, k_derivative)
+    filename = 'p{}_i{}_d{}_swing_of_{}.png'.format(k_proportional, k_integral, k_derivative, swing_factor)
     plt.savefig(filename)
 
 

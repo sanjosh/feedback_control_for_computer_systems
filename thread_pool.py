@@ -16,9 +16,10 @@ class ThreadPool():
 
     max_threads = 100
 
-    def __init__(self):
+    def __init__(self, swing_factor):
         self.threads = 3
         self.load = 10
+        self.swing_factor = swing_factor
 
         self.thread_list = []
         self.rate_list = []
@@ -36,7 +37,7 @@ class ThreadPool():
         '''
 
         # Simulate changes in load (incoming jobs)
-        self.load += max(self.load_randomizer.randint(-5, 5), 0)
+        self.load += max(self.load_randomizer.randint(-self.swing_factor, self.swing_factor), 0)
         self.load_list.append(self.load)
 
         if (self.load == 0):
@@ -90,19 +91,21 @@ def closed_loop( setpoint, controller, plant, tm=5000, inverted=False):
         z = plant.work(u)
 
 if __name__ == '__main__':
-    plant = ThreadPool()
+
+    swing_factor_in_load = 1
+
+    plant = ThreadPool(swing_factor_in_load)
+
     k_proportional = round((1/ThreadPool.approx_job_processing_rate_per_interval), 1)  # static gain factor
-    k_integral = 0.0
+    k_integral = 0.1
     k_derivative = 0.0
     controller = MyPidController(k_proportional, k_integral, k_derivative)  # kp = time to complete one job
     closed_loop(setpoint, controller, plant, 10000)
 
     data = np.array([plant.rate_list, plant.thread_list, plant.load_list])
-    print(data.shape)
-
     t = np.arange(0, data.shape[1])
     success_rate = data[0,:]
     thread_num = data[1,:]
     load_num = data[2,:]
 
-    draw_all(t, thread_num, load_num, success_rate, k_proportional, k_integral, k_derivative)
+    draw_all(t, thread_num, load_num, success_rate, k_proportional, k_integral, k_derivative, swing_factor_in_load)
