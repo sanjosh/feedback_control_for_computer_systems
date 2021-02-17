@@ -1,7 +1,7 @@
 import random
 import math
 import numpy as np
-from draw_fig import draw1
+from draw_fig import draw1, draw_all
 
 random.seed(323)
 
@@ -12,7 +12,8 @@ def setpoint(t):
 
 class ThreadPool():
 
-    approx_job_processing_rate_per_interval = 3
+    approx_job_processing_rate_per_interval = 3  # static gain
+
     max_threads = 100
 
     def __init__(self):
@@ -36,7 +37,6 @@ class ThreadPool():
 
         # Simulate changes in load (incoming jobs)
         self.load += max(self.load_randomizer.randint(-5, 5), 0)
-        # self.load += max(self.load_randomizer.gauss(0, 5), 0)
         self.load_list.append(self.load)
 
         if (self.load == 0):
@@ -91,9 +91,9 @@ def closed_loop( setpoint, controller, plant, tm=5000, inverted=False):
 
 if __name__ == '__main__':
     plant = ThreadPool()
-    k_proportional = 0.9
+    k_proportional = round((1/ThreadPool.approx_job_processing_rate_per_interval), 1)  # static gain factor
     k_integral = 0.0
-    k_derivative = 0.1
+    k_derivative = 0.0
     controller = MyPidController(k_proportional, k_integral, k_derivative)  # kp = time to complete one job
     closed_loop(setpoint, controller, plant, 10000)
 
@@ -101,9 +101,8 @@ if __name__ == '__main__':
     print(data.shape)
 
     t = np.arange(0, data.shape[1])
-    data1 = data[0,:]
-    data2 = data[1,:]
-    data3 = data[2,:]
+    success_rate = data[0,:]
+    thread_num = data[1,:]
+    load_num = data[2,:]
 
-    draw1('threadpool',t, 'job success_rate', data1, 'num threads', data2, k_proportional, k_integral, k_derivative)
-    draw1('load', t, 'pending jobs', data3, 'num threads', data2, k_proportional, k_integral, k_derivative)
+    draw_all(t, thread_num, load_num, success_rate, k_proportional, k_integral, k_derivative)
