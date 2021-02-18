@@ -19,6 +19,8 @@ def draw_all(t, thread_num, load_list, success_rate, k_proportional, k_integral,
     spl = make_interp_spline(t, success_rate, k=3)
     success_rate_smooth = spl(xnew)
 
+    plt.suptitle('PID={},{},{} load_swing={}'.format(k_proportional, k_integral, k_derivative, swing_factor))
+
     ax0 = plt.subplot(211)
     ax1 = ax0.twinx()
     ax2 = plt.subplot(212)
@@ -28,10 +30,13 @@ def draw_all(t, thread_num, load_list, success_rate, k_proportional, k_integral,
 
     ax0.plot(xnew, load_list_smooth, 'r', markevery=100, label='pending jobs')
     ax0.set_ylabel('pending jobs')
+    ax0.yaxis.label.set_color('r')
     ax1.plot(xnew, thread_num_smooth, 'b', markevery=100, label='num threads')
     ax1.set_ylabel('num threads')
+    ax1.yaxis.label.set_color('b')
     ax2.plot(xnew, success_rate_smooth, 'g', markevery=100, label='setpoint')
     ax2.set_ylabel('success rate')
+    ax2.yaxis.label.set_color('g')
     # ax3.plot(xnew, thread_num_smooth, 'b', label='num threads')
     # ax3.set_ylabel('num threads')
 
