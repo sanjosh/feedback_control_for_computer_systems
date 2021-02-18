@@ -19,7 +19,7 @@ def draw_all(t, thread_num, load_list, success_rate, k_proportional, k_integral,
     spl = make_interp_spline(t, success_rate, k=3)
     success_rate_smooth = spl(xnew)
 
-    plt.suptitle('PID={},{},{} load_swing={}'.format(k_proportional, k_integral, k_derivative, swing_factor))
+    plt.suptitle('PID=({},{},{}) : load_swing={}'.format(k_proportional, k_integral, k_derivative, swing_factor))
 
     ax0 = plt.subplot(211)
     ax1 = ax0.twinx()
